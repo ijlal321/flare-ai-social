@@ -7,8 +7,20 @@ RUN npm run build
 
 # Stage 2: Build Backend
 FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim AS backend-builder
-ADD . /flare-ai-social
 WORKDIR /flare-ai-social
+
+# Install dos2unix for line ending conversion
+RUN apt-get update && \
+    apt-get install -y dos2unix && \
+    rm -rf /var/lib/apt/lists/*
+
+# Copy files first
+ADD . /flare-ai-social
+
+# Convert line endings for critical files
+RUN find . -type f -name "pyproject.toml" -o -name "uv.lock" | xargs dos2unix
+
+# Install dependencies
 RUN uv sync --frozen
 
 # Stage 3: Final Image
