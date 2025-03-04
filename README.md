@@ -21,6 +21,7 @@ Flare AI Kit template for Social AI Agents.
 ### Prerequisites
 
 - [uv](https://docs.astral.sh/uv/getting-started/installation/)
+- [Docker](https://www.docker.com/)
 
 ### Fine-tune a model
 
@@ -34,32 +35,40 @@ Flare AI Kit template for Social AI Agents.
    | `batch_size`          | Number of examples to use in each training batch                          | 4                                  |
    | `learning_rate`       | Step size multiplier for the gradient updates                             | 0.001                              |
 
-2. **Prepare a dataset:**
+   Ensure your [Gemini API key](https://aistudio.google.com/app/apikey) is setup.
+
+2. **Install dependencies:**
+
+   ```bash
+   uv sync --all-extras
+   ```
+
+3. **Prepare a dataset:**
    An example dataset is provided in `src/data/training_data.json`, which consists of tweets from
    [Hugo Philion's X](https://x.com/HugoPhilion) account. You can use any publicly available dataset
    for model fine-tuning.
 
-3. **Tune a new model:**
+4. **Tune a new model:**
    Depending on the size of your dataset, this process can take several minutes:
 
    ```bash
    uv run start-tuning
    ```
 
-4. **Observe loss parameters:**
+5. **Observe loss parameters:**
    After tuning in complete, a training loss PNG will be saved in the root folder corresponding to the new model.
    Ideally the loss should minimize to near 0 after several training epochs.
 
-   ![pugo-hilion_mean_loss](https://github.com/user-attachments/assets/f6c4d82b-678a-4ae5-bfb7-39dc59e1103d)
+   ![agent-pugo-hilion_mean_loss](https://github.com/user-attachments/assets/39882da7-8f5f-45cd-afca-709f1333edf4)
 
-5. **Test the new model:**
+6. **Test the new model:**
    Select the new tuned model and compare it against a set of prompting techniques (zero-shot, few-shot and chain-of-thought):
 
    ```bash
    uv run start-compare
    ```
 
-6. **Start Social Bots (optional):**:
+7. **Start Social Bots (optional):**
 
    - Set up Twitter/X API credentials
    - Configure Telegram bot token
@@ -78,6 +87,8 @@ The Docker setup mimics a TEE environment and includes an Nginx server for routi
    ```bash
    docker build -t flare-ai-social .
    ```
+
+   **NOTE:** Windows users may encounter issues with `uv` due to incorrect parsing. For this try converting the `pyproject.toml` and `uv.lock` files to unix format.
 
 2. **Run the Docker Container:**
 
@@ -100,13 +111,13 @@ Flare AI Social is composed of a Python-based backend and a JavaScript frontend.
    ```bash
    uv sync --all-extras
    ```
-   
+
 2. **Start the Backend:**
    The backend runs by default on `0.0.0.0:80`:
 
-    ```bash
+   ```bash
    uv run start-backend
-    ```
+   ```
 
 #### Frontend Setup
 
@@ -132,7 +143,7 @@ Flare AI Social is composed of a Python-based backend and a JavaScript frontend.
    ```bash
    npm start
    ```
-   
+
 ## 📁 Repo Structure
 
 ```plaintext
@@ -160,7 +171,7 @@ src/flare_ai_social/
 
 ## 🚀 Deploy on TEE
 
-Deploy on a [Confidential Space](https://cloud.google.com/confidential-computing/confidential-space/docs/confidential-space-overview) using AMD SEV.
+Deploy on [Confidential Space](https://cloud.google.com/confidential-computing/confidential-space/docs/confidential-space-overview) using AMD SEV.
 
 ### Prerequisites
 
@@ -179,7 +190,7 @@ Deploy on a [Confidential Space](https://cloud.google.com/confidential-computing
    Update your `.env` file with:
 
    ```bash
-   TEE_IMAGE_REFERENCE=ghcr.io/flare-foundation/flare-ai-social:main  # Replace with your repo build image
+   TEE_IMAGE_REFERENCE=ghcr.io/YOUR_REPO_IMAGE:main  # Replace with your repo build image
    INSTANCE_NAME=<PROJECT_NAME-TEAM_NAME>
    ```
 
@@ -189,7 +200,7 @@ Deploy on a [Confidential Space](https://cloud.google.com/confidential-computing
    source .env
    ```
 
-   > **Reminder:** Run the above command in every new shell session.
+   > **Reminder:** Run the above command in every new shell session or after modifying `.env`. On Windows, we recommend using [git BASH](https://gitforwindows.org) to access commands like `source`.
 
 3. **Verify the Setup:**
 
@@ -204,7 +215,7 @@ Run the following command:
 ```bash
 gcloud compute instances create $INSTANCE_NAME \
   --project=verifiable-ai-hackathon \
-  --zone=us-central1-a \
+  --zone=us-central1-c \
   --machine-type=n2d-standard-2 \
   --network-interface=network-tier=PREMIUM,nic-type=GVNIC,stack-type=IPV4_ONLY,subnet=default \
   --metadata=tee-image-reference=$TEE_IMAGE_REFERENCE,\
@@ -233,22 +244,23 @@ type=pd-standard \
 
 #### Post-deployment
 
-After deployment, you should see an output similar to:
+1. After deployment, you should see an output similar to:
 
-```plaintext
-NAME          ZONE           MACHINE_TYPE    PREEMPTIBLE  INTERNAL_IP  EXTERNAL_IP    STATUS
-social-team1   us-central1-a  n2d-standard-2               10.128.0.18  34.41.127.200  RUNNING
-```
+   ```plaintext
+   NAME          ZONE           MACHINE_TYPE    PREEMPTIBLE  INTERNAL_IP  EXTERNAL_IP    STATUS
+   social-team1   us-central1-a  n2d-standard-2               10.128.0.18  34.41.127.200  RUNNING
+   ```
 
-It may take a few minutes for Confidential Space to complete startup checks.
-You can monitor progress via the [GCP Console](https://console.cloud.google.com/welcome?project=verifiable-ai-hackathon) by clicking **Serial port 1 (console)**.
-When you see a message like:
+2. It may take a few minutes for Confidential Space to complete startup checks. You can monitor progress via the [GCP Console](https://console.cloud.google.com/welcome?project=verifiable-ai-hackathon) logs.
+   Click on **Compute Engine** → **VM Instances** (in the sidebar) → **Select your instance** → **Serial port 1 (console)**.
 
-```plaintext
-INFO:     Uvicorn running on http://0.0.0.0:8080 (Press CTRL+C to quit)
-```
+   When you see a message like:
 
-the container is ready. Navigate to the external IP of the instance (visible in the GCP Console) to access the Chat UI.
+   ```plaintext
+   INFO:     Uvicorn running on http://0.0.0.0:8080 (Press CTRL+C to quit)
+   ```
+
+   the container is ready. Navigate to the external IP of the instance (visible in the **VM Instances** page) to access the Chat UI.
 
 ### 🔧 Troubleshooting
 
@@ -268,4 +280,50 @@ If you encounter issues, follow these steps:
 
 ## 💡 Next Steps
 
-TODO
+Below are several project ideas demonstrating how the template can be used to build useful social AI agents:
+
+### Dev Support on Telegram
+
+- **Integrate with flare-ai-rag:**  
+  Combine the social AI agent with the [flare-ai-rag](https://github.com/flare-foundation/flare-ai-rag) model trained on the [Flare Developer Hub](https://dev.flare.network) dataset.
+- **Enhanced Developer Interaction:**
+
+  - Provide targeted support for developers exploring [FTSO](https://dev.flare.network/ftso/overview) and [FDC](https://dev.flare.network/fdc/overview).
+  - Implement code-based interactions, including live debugging tips and code snippet sharing.
+
+- **Action Steps:**
+  - Connect the model to GitHub repositories to fetch live code examples.
+  - Fine-tune prompt templates using technical documentation to improve precision in code-related queries.
+
+### Community Support on Telegram
+
+- **Simplify Technical Updates:**
+  - Convert detailed [Flare governance proposals](https://proposals.flare.network) into concise, accessible summaries for community members.
+- **Real-Time Monitoring and Q&A:**
+
+  - Monitor channels like the [Flare Telegram](https://t.me/FlareNetwork) for live updates.
+  - Automatically answer common community questions regarding platform changes.
+
+- **Action Steps:**
+  - Integrate modules for content summarization and sentiment analysis.
+  - Establish a feedback loop to refine responses based on community engagement.
+
+### Social Media Sentiment & Moderation Bot
+
+- **Purpose:**  
+  Analyze sentiment on platforms like Twitter, Reddit, or Discord to monitor community mood, flag problematic content, and generate real-time moderation reports.
+
+- **Action Steps:**
+  - Leverage NLP libraries for sentiment analysis and content filtering.
+  - Integrate with social media APIs to capture and process live data.
+  - Set up dashboards to monitor trends and flagged content.
+
+### Personalized Content Curation Agent
+
+- **Purpose:**  
+  Curate personalized content such as news, blog posts, or tutorials tailored to user interests and engagement history.
+
+- **Action Steps:**
+  - Employ user profiling techniques to analyze preferences.
+  - Use machine learning algorithms to recommend content based on past interactions.
+  - Continuously refine the recommendation engine with user feedback and engagement metrics.
