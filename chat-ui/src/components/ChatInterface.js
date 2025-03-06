@@ -23,6 +23,7 @@ const ChatInterface = () => {
     const [awaitingConfirmation, setAwaitingConfirmation] = useState(false);
     const [pendingTransaction, setPendingTransaction] = useState(null);
     const [showInfo, setShowInfo] = useState(false);
+    const [backendStatus, setBackendStatus] = useState('checking'); // 'online', 'offline', or 'checking'
     const messagesEndRef = useRef(null);
     const inputRef = useRef(null);
 
@@ -37,6 +38,44 @@ const ChatInterface = () => {
     useEffect(() => {
         // Focus the input field when the component mounts
         inputRef.current?.focus();
+    }, []);
+
+    // Check backend connection status periodically
+    useEffect(() => {
+        const checkBackendStatus = async () => {
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+
+                // Use the ping endpoint to check if the backend is available
+                const response = await fetch(`${BACKEND_ROUTE}ping`, {
+                    method: 'GET',
+                    signal: controller.signal
+                });
+
+                clearTimeout(timeoutId);
+
+                if (response.ok) {
+                    setBackendStatus('online');
+                    console.log('Backend connection: Online');
+                } else {
+                    setBackendStatus('offline');
+                    console.log('Backend connection: Offline (Response not OK)');
+                }
+            } catch (error) {
+                console.error('Backend connection error:', error);
+                setBackendStatus('offline');
+            }
+        };
+
+        // Initial check
+        checkBackendStatus();
+
+        // Set up periodic checking (every 30 seconds)
+        const intervalId = setInterval(checkBackendStatus, 30000);
+
+        // Cleanup
+        return () => clearInterval(intervalId);
     }, []);
 
     const handleSendMessage = async (text) => {
@@ -55,6 +94,9 @@ const ChatInterface = () => {
 
             const data = await response.json();
 
+            // If message sent successfully, update backend status to online
+            setBackendStatus('online');
+
             // Check if response contains a transaction preview
             if (data.response.includes('Transaction Preview:')) {
                 setAwaitingConfirmation(true);
@@ -66,7 +108,9 @@ const ChatInterface = () => {
             return data.response;
         } catch (error) {
             console.error('Error:', error);
-            return 'Sorry, there was an error processing your request. Please try again.';
+            // If error occurred, update backend status to offline
+            setBackendStatus('offline');
+            return 'Sorry, I\'m having trouble connecting to my backend. Please check your connection and try again.';
         }
     };
 
@@ -311,8 +355,14 @@ const ChatInterface = () => {
                     <div>
                         <h2>Agent Pugo Hilion</h2>
                         <div className="status-indicator">
-                            <span className="status-dot"></span>
-                            <span>Online</span>
+                            <span className={`status-dot ${
+                                backendStatus === 'online' ? 'status-online' :
+                                    backendStatus === 'offline' ? 'status-offline' : 'status-checking'
+                            }`}></span>
+                            <span>{
+                                backendStatus === 'online' ? 'Online' :
+                                    backendStatus === 'offline' ? 'Offline' : 'Connecting...'
+                            }</span>
                         </div>
                     </div>
                 </div>
@@ -528,12 +578,12 @@ const ChatInterface = () => {
                             : "Type your message... (Markdown supported)"}
                         className="input-field"
                         rows="1"
-                        disabled={isLoading}
+                        disabled={isLoading || backendStatus === 'offline'}
                     />
                     <button
                         type="submit"
-                        disabled={isLoading || !inputText.trim()}
-                        className={`send-button ${isLoading || !inputText.trim() ? 'disabled' : ''}`}
+                        disabled={isLoading || !inputText.trim() || backendStatus === 'offline'}
+                        className={`send-button ${isLoading || !inputText.trim() || backendStatus === 'offline' ? 'disabled' : ''}`}
                         aria-label="Send message"
                     >
                         <Send size={18} />
