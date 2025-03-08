@@ -51,7 +51,6 @@ class BotManager:
                     self.ai_provider = GeminiProvider(
                         settings.gemini_api_key,
                         model_name=f"tunedModels/{tuned_model_id}",
-                        system_instruction=FEW_SHOT_PROMPT,
                     )
                     logger.info("Tuned model info", model_info=model_info)
                 except (InvalidArgument, NotFound):
