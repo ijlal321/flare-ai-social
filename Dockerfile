@@ -1,9 +1,9 @@
 # Stage 1: Build Frontend
 FROM node:18-alpine AS frontend-builder
 WORKDIR /frontend
-COPY chat-ui/Ai-Arena/ai-arena-challenge .
-RUN pnpm install
-RUN pnpm run build
+COPY chat-ui/ .
+RUN npm install
+RUN npm run build
 
 # Stage 2: Build Backend
 FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim AS backend-builder
@@ -25,7 +25,7 @@ COPY --from=backend-builder /flare-ai-social/pyproject.toml .
 COPY --from=backend-builder /flare-ai-social/README.md .
 
 # Copy frontend files
-COPY --from=frontend-builder /frontend/build /usr/share/nginx/html
+COPY --from=frontend-builder /frontend/dist /usr/share/nginx/html
 
 # Copy nginx configuration
 COPY nginx.conf /etc/nginx/sites-enabled/default
