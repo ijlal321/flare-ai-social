@@ -1,9 +1,9 @@
 # Stage 1: Build Frontend
 FROM node:18-alpine AS frontend-builder
 WORKDIR /frontend
-COPY chat-ui/ .
-RUN npm install
-RUN npm run build
+COPY chat-ui/Ai-Arena/ai-arena-challenge .
+RUN pnpm install
+RUN pnpm run build
 
 # Stage 2: Build Backend
 FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim AS backend-builder
